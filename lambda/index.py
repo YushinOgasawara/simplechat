@@ -5,9 +5,12 @@ import boto3
 import re  # 正規表現モジュールをインポート
 from botocore.exceptions import ClientError
 import urllib.request
-import urllib
+import urllib.error
+from dotenv import load_dotenv
 
-FASTAPI_URL = 'https://3369-34-127-119-112.ngrok-free.app'
+# .envファイルから環境変数を読み込み
+load_dotenv()
+FASTAPI_URL = os.getenv('FASTAPI_URL', 'https://3369-34-127-119-112.ngrok-free.app')
 
 # Lambda コンテキストからリージョンを抽出する関数
 def extract_region_from_arn(arn):
@@ -59,12 +62,16 @@ def lambda_handler(event, context):
         
         # FastAPIにリクエストを送信するデータを準備
         data = json.dumps({
-            "prompt": message
+            "prompt": message,
+            "max_new_tokens": 512,
+            "do_sample": True,
+            "temperature": 0.7,
+            "top_p": 0.9
         }).encode('utf-8')
 
         # リクエストの作成
         req = urllib.request.Request(
-            FASTAPI_URL,
+            FASTAPI_URL + "/generate",  # /generateエンドポイントを指定
             data=data,
             headers={'Content-Type': 'application/json'},
             method='POST'
@@ -74,11 +81,12 @@ def lambda_handler(event, context):
         try:
             with urllib.request.urlopen(req) as response:
                 fastapi_response = json.loads(response.read().decode('utf-8'))
+                assistant_message = fastapi_response['generated_text']
         except urllib.error.HTTPError as e:
             raise Exception(f"FastAPI error: {e.read().decode('utf-8')}")
 
         # 会話履歴を更新
-        messages.append({"role": "assistant", "content": fastapi_response['response']})
+        messages.append({"role": "assistant", "content": assistant_message})
 
         return {
             "statusCode": 200,
@@ -90,7 +98,7 @@ def lambda_handler(event, context):
             },
             "body": json.dumps({
                 "success": True,
-                "response": fastapi_response['response'],
+                "response": assistant_message,
                 "conversationHistory": messages
             })
         }
