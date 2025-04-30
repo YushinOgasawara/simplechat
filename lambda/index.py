@@ -6,11 +6,8 @@ import re  # 正規表現モジュールをインポート
 from botocore.exceptions import ClientError
 import urllib.request
 import urllib.error
-from dotenv import load_dotenv
 
-# .envファイルから環境変数を読み込み
-load_dotenv()
-FASTAPI_URL = os.getenv('FASTAPI_URL', 'https://3369-34-127-119-112.ngrok-free.app')
+FASTAPI_URL = "https://cd8a-34-127-119-112.ngrok-free.app"
 
 # Lambda コンテキストからリージョンを抽出する関数
 def extract_region_from_arn(arn):
